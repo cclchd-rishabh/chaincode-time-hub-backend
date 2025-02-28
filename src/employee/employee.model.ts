@@ -8,9 +8,11 @@ export class Employee {
     role: string;
     clock_in: string | null;
     clock_out: string | null;
-    break_time: string;
-    last_break_start: string | null;
+    break_start: string | null;
+    break_end: string | null;   
+    break_total: string | null;
     total_time: string | null;
     status: string;
+    breakToggle: boolean|false;
   }
   
