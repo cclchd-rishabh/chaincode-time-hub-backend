@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "first_name": "Akshat",
+    "last_name": "Sharma",
+    "email": "therishabh@gmail.co",
+    "avatar": "https://reqres.in/img/faces/1-image.jpg",
+    "department": "IT",
+    "role": "SDE",
+    "clock_in": true,
+    "clock_out": true,
+    "break_time": "0 min 0 sec",
+    "last_break_start": null,
+    "total_time": null,
+    "status": "day-over"
+  },
+  {
+    "id": 2,
+    "first_name": "Lovish",
+    "last_name": "Kumar",
+    "email": "lovish@gmail.com",
+    "avatar": "https://reqres.in/img/faces/9-image.jpg",
+    "department": "Chaincode",
+    "role": "SDE Intern",
+    "clock_in": null,
+    "clock_out": null,
+    "break_time": "0 min 0 sec",
+    "last_break_start": null,
+    "total_time": null,
+    "status": "not-present"
+  }
+]
