@@ -1,163 +1,450 @@
 import { Injectable } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-import {Employee} from './employee.model';
+import { DatabaseService } from '../database/database.service';
+import { Employee } from './employee.model';
+
+
 @Injectable()
 export class EmployeeService {
-    private filePath = path.join(process.cwd(), 'employee.json');
+    pool: any;
 
+    constructor(private readonly databaseService: DatabaseService) { }
+    async getEmployeeAttendanceDetails() {
+        const query = `
+     SELECT 
+    e.id AS employee_id, 
+    e.first_name, 
+    e.last_name, 
+    e.email, 
+    e.avatar, 
+    e.department, 
+    e.role, 
+    e.created_at AS employee_created_at,
+    e.total_time,
+    e.total_break_time,
+    e.total_work_time,
+    a.id AS attendance_id, 
+    a.date AS attendance_date,
+    a.clock_in, 
+    a.clock_out, 
+    a.status AS attendance_status,
+    b.id AS break_id, 
+    b.break_start, 
+    b.break_end,
+    b.status AS break_status
+FROM employees e
+LEFT JOIN attendance a ON e.id = a.employee_id
+LEFT JOIN breaks b ON a.id = b.attendance_id
+    AND b.break_start = (
+        SELECT MAX(break_start) 
+        FROM breaks 
+        WHERE attendance_id = a.id
+    )
+ORDER BY e.id DESC, a.date DESC;
 
-    private readEmployees():Employee[]{
-        try{
-        const data = fs.readFileSync(this.filePath, 'utf8');
-        return JSON.parse(data) as Employee[];
-        }catch(error){
-            return [];
-        }
-    }
+    `;
 
-    private writeEmployees(employees:Employee[]):void{
-        try{
-            console.log("Writing to employee.json:", JSON.stringify(employees, null, 2));
-            fs.writeFileSync(this.filePath, JSON.stringify(employees, null, 2), 'utf8');
-            console.log("Write successful!");
-        }catch(error){
-            console.error("Error writing to employee.json:", error);
-        }   
+        // Get connection from DatabaseService
+        const result = await this.databaseService.query(query) as any[];
+        console.log("result ->" ,result);
+        // Flattening the data
+        const flattenedData = result.map(row => {
+            const {
+                employee_id, first_name, last_name, email, avatar, department, role, employee_created_at,
+                attendance_id, attendance_date, clock_in, clock_out, attendance_status,
+                break_id, break_start, break_end , break_status ,total_break_time,total_time,total_work_time
+            } = row;
+            return {
+                employee_id,
+                first_name,
+                last_name,
+                email,
+                avatar,
+                department,
+                role,
+                employee_created_at: this.formatDate(employee_created_at),
+                attendance_id,
+                attendance_date: this.formatDate(attendance_date),
+                clock_in: this.formatDate(clock_in),
+                clock_out: this.formatDate(clock_out),
+                attendance_status,
+                break_id,
+                break_start: this.formatDate(break_start),
+                break_end: this.formatDate(break_end),
+                break_status,
+                total_break_time,
+                total_time,
+                total_work_time
+            };
+        });
+
+        return flattenedData;
     }
-    getAllEmployees():Employee[]{
-            return this.readEmployees();
+    private formatDate(date: string | Date | null): string | null {
+        if (!date) return null;
+
+        const d = new Date(date);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ` +
+            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
     }
-    getEmployeeById(id:number):Employee | undefined{
-        return this.readEmployees().find(employees=>employees.id ===id);
+    async getEmployeeById(id: number): Promise<any> {
+        console.log("aayaaa");
+        const query = `
+        SELECT 
+            e.id AS employee_id, 
+            e.first_name, 
+            e.last_name, 
+            e.email, 
+            e.avatar, 
+            e.department, 
+            e.role, 
+            e.created_at AS employee_created_at,
+            e.total_time,
+            e.total_break_time,
+            e.total_work_time,
+            a.id AS attendance_id, 
+            a.date AS attendance_date,
+            a.clock_in, 
+            a.clock_out, 
+            a.status AS attendance_status,
+            b.id AS break_id, 
+            b.break_start, 
+            b.break_end,
+            b.status AS break_status,
+
+        FROM employees e
+        LEFT JOIN attendance a ON e.id = a.employee_id
+        LEFT JOIN breaks b ON a.id = b.attendance_id
+        WHERE e.id = ?;
+    `;
+
+        const [rows] = await this.databaseService.query(query, [id]) as any[]
+        console.log("rows -> ", [rows]);
+        return rows;
     }
-    createEmployee(data: Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' |'break_Start'|'break_end'|'break_total'| 'total_time' | 'status'>): Employee {
-        const employees = this.readEmployees();
-        const newEmployee: Employee = {
-          id: employees.length + 1,
-          ...data,
-          clock_in: null,
-          clock_out: null,
-          break_start:  null,
-          break_end: null, 
-          break_total: null,
-          total_time: null,
-          status: "not-present",
+    async createEmployee(body: Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>): Promise<any> {
+    
+        const query = `
+        INSERT INTO employees (first_name, last_name, email, avatar, department, role)
+        VALUES (?, ?, ?, ?, ?, ?);
+    `;
+        const { first_name, last_name, email, avatar, department, role } = body;
+        
+        const result = await this.databaseService.query(query, [first_name, last_name, email, avatar, department, role]) as { insertId: number };
+
+        return {
+            id: result.insertId,  
+            ...body,
         };
-        
-        employees.push(newEmployee);
-        this.writeEmployees(employees);
-        return newEmployee;
-      }
-      updateEmployee(id: number, updates: Partial<Employee>): Employee | undefined {
-        const data = updates;
-        const employees = this.readEmployees();
-        const index = employees.findIndex(emp => emp.id === id);
-        if (index === -1) return undefined;
-        const employee = employees[index];
-    
-        // Handle break start
-        if (data.status === 'inactive' && !employee.breakToggle) {
-            data.break_start = new Date().toISOString();
-            data.breakToggle = true;
-        } 
-        // Handle break end/resume
-        else if (data.breakToggle === false && employee.breakToggle && employee.break_start) {
-            const breakStart = new Date(employee.break_start);
-            const breakEnd = new Date();
-            const breakDiff = breakEnd.getTime() - breakStart.getTime();
-            const breakHours = Math.floor(breakDiff / 1000 / 60 / 60);
-            const breakMinutes = Math.floor(breakDiff / 1000 / 60) % 60;
-            const breakSeconds = Math.floor(breakDiff / 1000) % 60;
-            const newBreakTotal = `${breakHours} hr ${breakMinutes} min ${breakSeconds} sec`;
-            data.break_total = this.addBreakTimes(employee.break_total, newBreakTotal);
-            data.break_end = breakEnd.toISOString();
-        }
-    
-        // Handle clock out and total time calculation
-        if (data.clock_out && employee.clock_in) {
-            const clockIn = new Date(employee.clock_in);
-            const clockOut = new Date(data.clock_out);
-            
-            // Ensure break_total is defined before using it
-            const breakTime = employee.break_total ? this.parseBreakTime(employee.break_total) : 0;
-            
-            // Calculate total work time (clock out - clock in - break time)
-            const totalTime = clockOut.getTime() - clockIn.getTime();
-            const netTime = Math.max(0, totalTime - breakTime); // Ensure it's never negative
-            
-            const hours = Math.floor(netTime / 1000 / 60 / 60);
-            const minutes = Math.floor((netTime / 1000 / 60) % 60);
-            const seconds = Math.floor((netTime / 1000) % 60);
-            
-            data.total_time = `${hours} hr ${minutes} min ${seconds} sec`;
-        }
-    
-        // Additional validation for break end calculation
-        if (data.break_end && employee.break_start) {
-            const breakStart = new Date(employee.break_start);
-            const breakEnd = new Date(data.break_end);
-            
-            // Validate the dates are in correct order
-            if (breakEnd >= breakStart) {
-                const breakDiff = breakEnd.getTime() - breakStart.getTime();
-                const breakHours = Math.floor(breakDiff / 1000 / 60 / 60);
-                const breakMinutes = Math.floor((breakDiff / 1000 / 60) % 60);
-                const breakSeconds = Math.floor((breakDiff / 1000) % 60);
-                const newBreakTotal = `${breakHours} hr ${breakMinutes} min ${breakSeconds} sec`;
-                data.break_total = this.addBreakTimes(employee.break_total, newBreakTotal);
-            }
-        }
-    
-        console.log(updates);
-        employees[index] = { ...employees[index], ...updates };
-        this.writeEmployees(employees);
-        return employees[index];
-      }
-      deleteEmployee(id: number): string {
-        const employees = this.readEmployees();
-        const filteredEmployees = employees.filter(emp => emp.id !== id);
-        if (employees.length === filteredEmployees.length) return 'Employee not found';
-    
-        this.writeEmployees(filteredEmployees);
-        return 'Employee deleted successfully';
-      }
-      
-      private parseBreakTime(breakTime: string | null): number {
-        if (!breakTime) return 0;
-        
-        const parts = breakTime.split(' ');
-        let totalMs = 0;
-        
-        for (let i = 0; i < parts.length; i += 2) {
-          if (i + 1 >= parts.length) break; // Safety check for unpaired values
-          
-          const value = parseInt(parts[i]);
-          const unit = parts[i + 1];
-          
-          if (isNaN(value)) continue;
-          
-          if (unit.startsWith('hr')) {
-            totalMs += value * 60 * 60 * 1000;
-          } else if (unit.startsWith('min')) {
-            totalMs += value * 60 * 1000;
-          } else if (unit.startsWith('sec')) {
-            totalMs += value * 1000;
-          }
-        }
-        
-        return totalMs;
-      }
 
-    private addBreakTimes(existingBreakTotal: string | null, newBreakTotal: string): string {
-        const existingBreakTime = this.parseBreakTime(existingBreakTotal);
-        const newBreakTime = this.parseBreakTime(newBreakTotal);
-        const totalBreakTime = existingBreakTime + newBreakTime;
-        
-        const hours = Math.floor(totalBreakTime / 1000 / 60 / 60);
-        const minutes = Math.floor((totalBreakTime / 1000 / 60) % 60);
-        const seconds = Math.floor((totalBreakTime / 1000) % 60);
-        
-        return `${hours} hr ${minutes} min ${seconds} sec`;
     }
+    async handleBreaks(id: number, updates: Partial<Employee>): Promise<Employee | string> {
+        if (!id || isNaN(id)) {
+            return "Invalid Employee ID";
+        }
+        console.log("HandleBreak");
+        console.log(updates);
+        
+        const timestamp = new Date();
+        const mysqlTimestamp = timestamp.toISOString().slice(0, 19).replace("T", " ");
+        const attendanceRecords = await this.databaseService.query(
+            `SELECT id FROM attendance WHERE employee_id = ?`,
+            [id]
+        ) as any[];
+        console.log("attendance - >" , attendanceRecords);
+        if (attendanceRecords.length === 0) {
+            console.log("Error")
+            return `Error: No attendance record found for id = ${id}`;
+        }
+        // console.log(updates.attendance_id)
+    
+        if (updates.status == 'inactive') {
+            console.log("Break started");
+    
+            await this.databaseService.query(
+                `INSERT INTO breaks (attendance_id, break_start) VALUES (?,?)`,
+                [ id, mysqlTimestamp]
+            );
+    
+            await this.databaseService.query(
+                `UPDATE attendance SET status = 'inactive' WHERE id = ?`,
+                [id]
+            );
+    
+            return { id, break_start: mysqlTimestamp, status: "inactive" } as any;
+        } else {
+            
+            const [lastBreak] = await this.databaseService.query(
+                `SELECT id FROM breaks WHERE attendance_id = ? AND break_end IS NULL ORDER BY id DESC LIMIT 1`,
+                [id]
+            ) as any[];
+    
+            if (!lastBreak) {
+                return "Error: No active break found to end.";
+            }
+    
+            const breakId = lastBreak.id;
+    
+            await this.databaseService.query(
+                `UPDATE breaks SET break_end = ? WHERE id = ?`,
+                [mysqlTimestamp, breakId]
+            );
+    
+            await this.databaseService.query(
+                `UPDATE attendance SET status = 'active' WHERE id = ?`,
+                [id]
+            );
+    
+            return { id, break_end: mysqlTimestamp, status: "active" } as any;
+        }
+    }
+    async handleAttendanceClockOut(id: number): Promise<{ 
+        message: string; 
+        success: boolean;
+        totalWorkTime: string;
+        totalBreakTime: string;netWorkTime: string;} | string> {
+        
+        if (!id || isNaN(id)) {
+            console.error(`[ERROR] Invalid employee ID: ${id}`);
+            return "Invalid employee ID";
+        }
+    
+        // Generate MySQL timestamp
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const timestamp = new Date(now.getTime() - offset).toISOString().slice(0, 19).replace("T", " ");
+    
+        console.log(`\n[LOG] Clock-out request received for Employee ID: ${id}`);
+        console.log(`[LOG] Generated Local Timestamp: ${timestamp}`);
+    
+        try {
+            // Check if employee has clocked in today
+            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND date = CURDATE() AND clock_out IS NULL`;
+            console.log(`[QUERY] ${checkAttendanceQuery} | Params: [${id}]`);
+    
+            const existingAttendance = await this.databaseService.query(checkAttendanceQuery, [id]) as any[];
+    
+            if (existingAttendance.length === 0) {
+                console.warn(`[WARNING] No active clock-in record found for Employee ID ${id}.`);
+                return "No active clock-in record found for today. Please clock in first.";
+            }
+    
+            const attendanceId = existingAttendance[0].id;
+    
+            //  Update attendance table with `clock_out`
+            const updateAttendanceQuery = `
+                UPDATE attendance SET clock_out = ?, status = 'day-over' WHERE id = ?
+            `;
+            console.log(`[QUERY] ${updateAttendanceQuery} | Params: [${timestamp}, ${attendanceId}]`);
+    
+            const updateResult = await this.databaseService.query(updateAttendanceQuery, [timestamp, attendanceId]);
+    
+            if (!updateResult || (updateResult as any).affectedRows === 0) {
+                console.error(`[ERROR] Failed to update clock-out for Employee ID: ${id}`);
+                return "Error: Unable to clock out. Please try again.";
+            }
+    
+            console.log(`[LOG] Successfully clocked out Employee ID: ${id} at ${timestamp}`);
+    
+            //  Use utility function to calculate work and break time
+            const { totalBreakTime, totalWorkTime, netWorkTime } = await this.calculateWorkTime(attendanceId);
+            
+            const updateTotalTimeQuery = `
+            UPDATE employees SET total_time = ? , total_work_time = ? , total_break_time = ? WHERE id = ? `
+            const updateTotalTimeQueryResult = await this.databaseService.query(updateTotalTimeQuery,[netWorkTime,totalWorkTime, totalBreakTime ,id])
+            
+            if (!updateTotalTimeQueryResult || (updateTotalTimeQueryResult as any).affectedRows === 0) {
+                console.error(`[ERROR] Failed to update total-time , total-work-time , total-break-time for Employee ID: ${id}`);
+                return "Error: Unable to update time. Please try again.";
+            }
+           
+            return { 
+                message: `Clock-out successful for Employee ID: ${id}`, 
+                success: true,
+                totalWorkTime,
+                totalBreakTime,
+                netWorkTime
+            };
+    
+        } catch (error) {
+            console.error(`[ERROR] Exception occurred while clocking out Employee ID: ${id}`, error);
+            return "Error: An unexpected issue occurred while clocking out.";
+        }
+    }
+    async handleAttendanceClockIn(id: number): Promise<{ message: string; success: boolean } | string> {
+        if (!id || isNaN(id)) {
+            console.error(`[ERROR] Invalid employee ID: ${id}`);
+            return "Invalid employee ID";
+        }
+    
+        // Generate timestamp in MySQL-compatible format (YYYY-MM-DD HH:MM:SS)
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000; // Convert offset from minutes to milliseconds
+        const timestamp = new Date(now.getTime() - offset).toISOString().slice(0, 19).replace("T", " ");
+    
+        console.log(`\n[LOG] Clock-in request received for Employee ID: ${id}`);
+        console.log(`[LOG] Generated Local Timestamp: ${timestamp}`);
+    
+        try {
+            // Check if the employee has already clocked in today
+            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND date = CURDATE()`;
+            console.log(`[QUERY] ${checkAttendanceQuery} | Params: [${id}]`);
+    
+            const existingAttendance = await this.databaseService.query(checkAttendanceQuery, [id]) as any[];
+    
+            if (existingAttendance.length > 0) {
+                console.warn(`[WARNING] Employee ID ${id} has already clocked in today.`);
+                return "You have already clocked in today.";
+            }
+    
+            // Insert a new attendance record for today
+            const insertAttendanceQuery = `
+                INSERT INTO attendance (employee_id, date, clock_in, status)
+                VALUES (?, CURDATE(), ?, 'active')
+            `;
+            console.log(`[QUERY] ${insertAttendanceQuery} | Params: [${id}, ${timestamp}]`);
+    
+            const insertResult = await this.databaseService.query(insertAttendanceQuery, [id, timestamp]);
+            console.log(`[DEBUG] Insert result:`, insertResult);
+    
+            if (!insertResult || (insertResult as any).affectedRows === 0) {
+                console.error(`[ERROR] Failed to insert attendance record for Employee ID: ${id}`);
+                return "Error: Unable to clock in. Please try again.";
+            }
+    
+            console.log(`[LOG] Successfully clocked in Employee ID: ${id} at ${timestamp}`);
+            return { message: `Clock-in successful for Employee ID: ${id}`, success: true };
+    
+        } catch (error) {
+            console.error(`[ERROR] Exception occurred while handling attendance for Employee ID: ${id}`, error);
+            return "Error: An unexpected issue occurred while clocking in.";
+        }
+    }
+    async updateEmployee(id: number, updates: Partial<Employee>): Promise<Employee | null> {
+        
+        const employeeId = Number(id);
+        if (isNaN(employeeId)) {
+            throw new Error("Invalid employee ID provided");
+        }
+    
+        const fields = Object.keys(updates)
+            .map((key) => `${key} = ?`)
+            .join(', ');
+    
+        if (!fields) return null;
+    
+        const values = Object.values(updates);
+        values.push(employeeId); // Ensure a valid number is pushed
+    
+        const query = `
+            UPDATE employees 
+            SET ${fields} 
+            WHERE id = ?
+        `;
+    
+        console.log("Generated Query:", query);
+        console.log("Query Values:", values);
+    
+        const [rows]: any = await this.databaseService.query(query, values);
+        console.log("Query Result:", rows);
+        console.log("editing emp in db");
+        return rows.affectedRows > 0 ? { id: employeeId, ...updates } as Employee : null;
+    }
+    async deleteEmployee(id:number):Promise<void | string>{
+        const query = `DELETE from employees WHERE employees.id=?;`;
+        const res = await this.databaseService.query(query,[id]) as any[]
+       console.log("Deleted");
+       return {message : "Deleted from db"} as any ;
+    }
+    async calculateWorkTime(attendanceId: number): Promise<{ 
+        totalBreakTime: string; 
+        totalWorkTime: string; 
+        netWorkTime: string; 
+    }> {
+        // Fetch all break records for the given attendance ID
+        const getBreaksQuery = `
+            SELECT break_start, break_end FROM breaks 
+            WHERE attendance_id = ? AND break_start IS NOT NULL AND break_end IS NOT NULL
+        `;
+        console.log(`[QUERY] ${getBreaksQuery} | Params: [${attendanceId}]`);
+    
+        const breaks = await this.databaseService.query(getBreaksQuery, [attendanceId]) as { 
+            break_start: string; 
+            break_end: string; 
+        }[];
+    
+        let totalBreakTimeMs = 0;
+    
+        if (breaks.length > 0) {
+            breaks.forEach(breakEntry => {
+                const breakStart = new Date(breakEntry.break_start);
+                const breakEnd = new Date(breakEntry.break_end);
+                totalBreakTimeMs += (breakEnd.getTime() - breakStart.getTime());
+            });
+        }
+    
+        // Convert break time to HH:MM:SS format
+        const totalBreakTime = new Date(totalBreakTimeMs).toISOString().substr(11, 8);
+    
+        // Fetch clock-in and clock-out times from attendance table
+        const getAttendanceQuery = `
+            SELECT clock_in, clock_out FROM attendance WHERE id = ?
+        `;
+        console.log(`[QUERY] ${getAttendanceQuery} | Params: [${attendanceId}]`);
+    
+        const attendance = await this.databaseService.query(getAttendanceQuery, [attendanceId]) as { 
+            clock_in: string; 
+            clock_out: string; 
+        }[];
+    
+        if (attendance.length === 0) {
+            throw new Error("Attendance record not found.");
+        }
+    
+        const clockInTime = new Date(attendance[0].clock_in);
+        const clockOutTime = new Date(attendance[0].clock_out);
+    
+        // Calculate total work duration
+        const totalWorkTimeMs = clockOutTime.getTime() - clockInTime.getTime();
+        const totalWorkTime = new Date(totalWorkTimeMs).toISOString().substr(11, 8);
+    
+        //  Compute net work time (totalWorkTime - totalBreakTime)
+        const netWorkTimeMs = totalWorkTimeMs - totalBreakTimeMs;
+        const netWorkTime = new Date(netWorkTimeMs).toISOString().substr(11, 8);
+    
+        return { totalBreakTime, totalWorkTime, netWorkTime };
+    }
+    async handleStartBreak(id: number) {
+        console.log("DEBUG: Received attendanceId from frontend:", id);
+        
+        // Insert a new break entry
+        const insertQuery = `INSERT INTO breaks (attendance_id, break_start, status) VALUES (?, NOW(), 'on_break')`;
+        await this.databaseService.query(insertQuery, [id]);
+    
+        // Update attendance status
+        const updateAttendanceQuery = `UPDATE attendance SET status = 'inactive' WHERE id = ?`;
+        console.log(`[QUERY] ${updateAttendanceQuery} | Params: [${id}]`);
+        await this.databaseService.query(updateAttendanceQuery, [id]);
+    
+        console.log("Break started successfully for attendance ID:", id);
+        return { message: 'Break started successfully' };
+    }
+    async handleEndBreak(id: number) {
+        console.log("DEBUG: Received attendanceId from frontend for break end:", id);
+    
+        // Update break_end time for the latest break record
+        const updateBreakQuery = `UPDATE breaks SET break_end = NOW(), status = 'completed' WHERE attendance_id = ? AND break_end IS NULL`;
+        console.log(`[QUERY] ${updateBreakQuery} | Params: [${id}]`);
+        await this.databaseService.query(updateBreakQuery, [id]);
+    
+        // Restore attendance status
+        const updateAttendanceQuery = `UPDATE attendance SET status = 'active' WHERE id = ?`;
+        console.log(`[QUERY] ${updateAttendanceQuery} | Params: [${id}]`);
+        await this.databaseService.query(updateAttendanceQuery, [id]);
+    
+        console.log("Break ended successfully for attendance ID:", id);
+        return { message: 'Break ended successfully' };
+    }
+
 }
+
+

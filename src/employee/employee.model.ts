@@ -15,4 +15,3 @@ export class Employee {
     status: string;
     breakToggle: boolean|false;
   }
-  
