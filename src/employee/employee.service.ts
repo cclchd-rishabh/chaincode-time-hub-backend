@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable , HttpException,HttpStatus  } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { Employee } from './employee.model';
 
@@ -9,7 +9,7 @@ export class EmployeeService {
 
     constructor(private readonly databaseService: DatabaseService) { }
     async getEmployeeAttendanceDetails() {
-        const query = `
+       const query = `
      SELECT 
     e.id AS employee_id, 
     e.first_name, 
@@ -45,7 +45,9 @@ ORDER BY e.id DESC, a.date DESC;
 
         // Get connection from DatabaseService
         const result = await this.databaseService.query(query) as any[];
-        console.log("result ->" ,result);
+      
+        console.log("Get all employees details called");
+        // console.log("result ->" ,result);
         // Flattening the data
         const flattenedData = result.map(row => {
             const {
@@ -79,6 +81,85 @@ ORDER BY e.id DESC, a.date DESC;
 
         return flattenedData;
     }
+    async getEmployeeAttendanceDetailsDatewise(date: string) {
+        console.log("Afasdfkjdsajfksadfjlkasfjlkasdglkasdgdsalgoirngadfsgion");
+        if (!date) {
+            throw new Error("Date parameter is required");
+        }
+        console.log("Issue encountered");
+        const query = `
+            SELECT 
+                e.id AS employee_id, 
+                e.first_name, 
+                e.last_name, 
+                e.email, 
+                e.avatar, 
+                e.department, 
+                e.role, 
+                e.created_at AS employee_created_at,
+                e.total_time,
+                e.total_break_time,
+                e.total_work_time,
+                a.id AS attendance_id, 
+                a.date AS attendance_date,
+                a.clock_in, 
+                a.clock_out, 
+                a.status AS attendance_status,
+                b.id AS break_id, 
+                b.break_start, 
+                b.break_end,
+                b.status AS break_status
+            FROM employees e
+LEFT JOIN attendance a ON e.id = a.employee_id AND DATE(a.date) = ?
+LEFT JOIN breaks b ON a.id = b.attendance_id
+AND b.break_start = (
+        SELECT MAX(break_start) 
+        FROM breaks 
+        WHERE attendance_id = a.id
+    )
+ORDER BY e.id DESC, a.date DESC;
+         
+        `;
+    
+        try {
+            const result = await this.databaseService.query(query, [date]) as any[];
+    
+            if (result.length === 0) {
+                console.log("No attendance records found for this date:", date);
+                return []; // Return empty array if no data
+            }
+            console.log("Get employees datewise");
+            console.log("Attendance result ->", result);
+    
+            return result.map(row => ({
+                employee_id: row.employee_id,
+                first_name: row.first_name,
+                last_name: row.last_name,
+                email: row.email,
+                avatar: row.avatar,
+                department: row.department,
+                role: row.role,
+                employee_created_at: this.formatDate(row.employee_created_at),
+                attendance_id: row.attendance_id,
+                attendance_date: this.formatDate(row.attendance_date),
+                clock_in: this.formatDate(row.clock_in),
+                clock_out: this.formatDate(row.clock_out),
+                attendance_status: row.attendance_status,
+                break_id: row.break_id,
+                break_start: this.formatDate(row.break_start),
+                break_end: this.formatDate(row.break_end),
+                break_status: row.break_status,
+                total_break_time: row.total_break_time,
+                total_time: row.total_time,
+                total_work_time: row.total_work_time
+            }));
+    
+        } catch (error) {
+            console.error("Error fetching attendance details:", error);
+            throw new Error("Failed to fetch attendance details");
+        }
+    }
+
     private formatDate(date: string | Date | null): string | null {
         if (!date) return null;
 
@@ -109,33 +190,47 @@ ORDER BY e.id DESC, a.date DESC;
             b.id AS break_id, 
             b.break_start, 
             b.break_end,
-            b.status AS break_status,
+            b.status AS break_status
 
         FROM employees e
         LEFT JOIN attendance a ON e.id = a.employee_id
         LEFT JOIN breaks b ON a.id = b.attendance_id
         WHERE e.id = ?;
     `;
-
+        console.log("Get employees by id");
         const [rows] = await this.databaseService.query(query, [id]) as any[]
-        console.log("rows -> ", [rows]);
+        // console.log("rows -> ", [rows]);
         return rows;
     }
     async createEmployee(body: Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>): Promise<any> {
-    
         const query = `
-        INSERT INTO employees (first_name, last_name, email, avatar, department, role)
-        VALUES (?, ?, ?, ?, ?, ?);
-    `;
+            INSERT INTO employees (first_name, last_name, email, avatar, department, role)
+            VALUES (?, ?, ?, ?, ?, ?);
+        `;
         const { first_name, last_name, email, avatar, department, role } = body;
-        
-        const result = await this.databaseService.query(query, [first_name, last_name, email, avatar, department, role]) as { insertId: number };
-
-        return {
-            id: result.insertId,  
-            ...body,
-        };
-
+    
+        try {
+            const result = await this.databaseService.query(query, [first_name, last_name, email, avatar, department, role]) as { insertId: number };
+    
+            return {
+                success: true,
+                message: "Employee created successfully",
+                data: {
+                    id: result.insertId,
+                    ...body,
+                },
+            };
+        } catch (error) {
+            console.error("Error creating employee:", error);
+    
+            // Handle specific SQL errors (e.g., duplicate email)
+            if (error.code === "ER_DUP_ENTRY") {
+                throw new HttpException("Email already exists", HttpStatus.CONFLICT);
+            }
+    
+            // Handle general database errors
+            throw new HttpException("Failed to create employee", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     async handleBreaks(id: number, updates: Partial<Employee>): Promise<Employee | string> {
         if (!id || isNaN(id)) {
