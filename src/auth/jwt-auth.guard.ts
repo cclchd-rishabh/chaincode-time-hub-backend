@@ -8,17 +8,18 @@ export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     console.log("Headers ->", request.headers);
-
+    try{
     const authHeader = request.headers['authorization'];  
     console.log("Auth Header ->", authHeader);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid token');
+      console.log("NO Header");
+      throw new UnauthorizedException('Not Authorized');
     }
 
     const token = authHeader.split(' ')[1];
 
-    try {
+    
       const decoded = this.jwtService.verify(token);
       console.log("Decoded User:", decoded);
       request.user = decoded;

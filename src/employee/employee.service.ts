@@ -508,6 +508,7 @@ ORDER BY e.id DESC, a.date DESC;
     
         return { totalBreakTime, totalWorkTime, netWorkTime };
     }
+    
     async handleStartBreak(id: number) {
         console.log("DEBUG: Received attendanceId from frontend:", id);
         
