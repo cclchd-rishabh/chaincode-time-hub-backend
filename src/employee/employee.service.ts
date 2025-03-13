@@ -10,7 +10,7 @@ export class EmployeeService {
     constructor(private readonly databaseService: DatabaseService) { }
     async getEmployeeAttendanceDetails() {
        const query = `
-     SELECT 
+SELECT 
     e.id AS employee_id, 
     e.first_name, 
     e.last_name, 
@@ -22,15 +22,14 @@ export class EmployeeService {
     e.total_time,
     e.total_break_time,
     e.total_work_time,
-    a.id AS attendance_id, 
-    a.date AS attendance_date,
-    a.clock_in, 
-    a.clock_out, 
-    a.status AS attendance_status,
-    b.id AS break_id, 
-    b.break_start, 
-    b.break_end,
-    b.status AS break_status
+    MAX(a.id) AS attendance_id, 
+    MAX(a.clock_in) AS clock_in, 
+    MAX(a.clock_out) AS clock_out, 
+    MAX(a.status) AS attendance_status,
+    MAX(b.id) AS break_id, 
+    MAX(b.break_start) AS break_start, 
+    MAX(b.break_end) AS break_end,
+     MAX(b.status) AS break_status
 FROM employees e
 LEFT JOIN attendance a ON e.id = a.employee_id
 LEFT JOIN breaks b ON a.id = b.attendance_id
@@ -39,7 +38,8 @@ LEFT JOIN breaks b ON a.id = b.attendance_id
         FROM breaks 
         WHERE attendance_id = a.id
     )
-ORDER BY e.id DESC, a.date DESC;
+GROUP BY e.id
+ORDER BY e.id DESC ;
 
     `;
 
@@ -52,7 +52,7 @@ ORDER BY e.id DESC, a.date DESC;
         const flattenedData = result.map(row => {
             const {
                 employee_id, first_name, last_name, email, avatar, department, role, employee_created_at,
-                attendance_id, attendance_date, clock_in, clock_out, attendance_status,
+                attendance_id, clock_in, clock_out, attendance_status,
                 break_id, break_start, break_end , break_status ,total_break_time,total_time,total_work_time
             } = row;
             return {
@@ -65,7 +65,6 @@ ORDER BY e.id DESC, a.date DESC;
                 role,
                 employee_created_at: this.formatDate(employee_created_at),
                 attendance_id,
-                attendance_date: this.formatDate(attendance_date),
                 clock_in: this.formatDate(clock_in),
                 clock_out: this.formatDate(clock_out),
                 attendance_status,
@@ -101,7 +100,6 @@ ORDER BY e.id DESC, a.date DESC;
     e.total_break_time,
     e.total_work_time,
     a.id AS attendance_id, 
-    a.date AS attendance_date,
     a.clock_in, 
     a.clock_out, 
     a.status AS attendance_status,
@@ -110,7 +108,7 @@ ORDER BY e.id DESC, a.date DESC;
     b.break_end,
     b.status AS break_status
 FROM employees e
-LEFT JOIN attendance a ON e.id = a.employee_id AND DATE(a.date) = ?
+LEFT JOIN attendance a ON e.id = a.employee_id AND DATE(a.created_at) = ?
 LEFT JOIN breaks b ON a.id = b.attendance_id
 AND b.break_start = (
     SELECT MAX(break_start) 
@@ -118,7 +116,7 @@ AND b.break_start = (
     WHERE attendance_id = a.id
 )
 WHERE DATE(e.created_at) <= ? /* Only include employees created on or before the queried date */
-ORDER BY e.id DESC, a.date DESC;
+ORDER BY e.id DESC ;
         `;
     
         try {
@@ -141,7 +139,6 @@ ORDER BY e.id DESC, a.date DESC;
                 role: row.role,
                 employee_created_at: this.formatDate(row.employee_created_at),
                 attendance_id: row.attendance_id,
-                attendance_date: this.formatDate(row.attendance_date),
                 clock_in: this.formatDate(row.clock_in),
                 clock_out: this.formatDate(row.clock_out),
                 attendance_status: row.attendance_status,
@@ -183,7 +180,6 @@ ORDER BY e.id DESC, a.date DESC;
             e.total_break_time,
             e.total_work_time,
             a.id AS attendance_id, 
-            a.date AS attendance_date,
             a.clock_in, 
             a.clock_out, 
             a.status AS attendance_status,
