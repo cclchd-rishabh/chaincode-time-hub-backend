@@ -88,41 +88,41 @@ ORDER BY e.id DESC, a.date DESC;
         }
         console.log("Issue encountered");
         const query = `
-            SELECT 
-                e.id AS employee_id, 
-                e.first_name, 
-                e.last_name, 
-                e.email, 
-                e.avatar, 
-                e.department, 
-                e.role, 
-                e.created_at AS employee_created_at,
-                e.total_time,
-                e.total_break_time,
-                e.total_work_time,
-                a.id AS attendance_id, 
-                a.date AS attendance_date,
-                a.clock_in, 
-                a.clock_out, 
-                a.status AS attendance_status,
-                b.id AS break_id, 
-                b.break_start, 
-                b.break_end,
-                b.status AS break_status
-            FROM employees e
+           SELECT 
+    e.id AS employee_id, 
+    e.first_name, 
+    e.last_name, 
+    e.email, 
+    e.avatar, 
+    e.department, 
+    e.role, 
+    e.created_at AS employee_created_at,
+    e.total_time,
+    e.total_break_time,
+    e.total_work_time,
+    a.id AS attendance_id, 
+    a.date AS attendance_date,
+    a.clock_in, 
+    a.clock_out, 
+    a.status AS attendance_status,
+    b.id AS break_id, 
+    b.break_start, 
+    b.break_end,
+    b.status AS break_status
+FROM employees e
 LEFT JOIN attendance a ON e.id = a.employee_id AND DATE(a.date) = ?
 LEFT JOIN breaks b ON a.id = b.attendance_id
 AND b.break_start = (
-        SELECT MAX(break_start) 
-        FROM breaks 
-        WHERE attendance_id = a.id
-    )
+    SELECT MAX(break_start) 
+    FROM breaks 
+    WHERE attendance_id = a.id
+)
+WHERE DATE(e.created_at) <= ? /* Only include employees created on or before the queried date */
 ORDER BY e.id DESC, a.date DESC;
-         
         `;
     
         try {
-            const result = await this.databaseService.query(query, [date]) as any[];
+            const result = await this.databaseService.query(query, [date,date]) as any[];
     
             if (result.length === 0) {
                 console.log("No attendance records found for this date:", date);

@@ -22,7 +22,7 @@ export class RolesGuard implements CanActivate {
     const token = authHeader.split(' ')[1]; // Extract token
     try {
       const decoded = this.jwtService.verify(token);
-      request.user = decoded; // Attach user to request
+      request.user = decoded; 
       return requiredRoles.includes(decoded.role); // Check role
     } catch (error) {
       throw new ForbiddenException('Invalid or expired token');
