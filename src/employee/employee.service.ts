@@ -309,7 +309,7 @@ ORDER BY e.id DESC ;
     
         try {
             // Check if employee has clocked in today
-            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND date = CURDATE() AND clock_out IS NULL`;
+            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND clock_out IS NULL`;
             console.log(`[QUERY] ${checkAttendanceQuery} | Params: [${id}]`);
     
             const existingAttendance = await this.databaseService.query(checkAttendanceQuery, [id]) as any[];
