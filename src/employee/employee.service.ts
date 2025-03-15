@@ -377,7 +377,7 @@ ORDER BY e.id DESC ;
     
         try {
             // Check if the employee has already clocked in today
-            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND date = CURDATE()`;
+            const checkAttendanceQuery = `SELECT id FROM attendance WHERE employee_id = ? AND created_at = CURDATE()`;
             console.log(`[QUERY] ${checkAttendanceQuery} | Params: [${id}]`);
     
             const existingAttendance = await this.databaseService.query(checkAttendanceQuery, [id]) as any[];
@@ -389,9 +389,9 @@ ORDER BY e.id DESC ;
     
             // Insert a new attendance record for today
             const insertAttendanceQuery = `
-                INSERT INTO attendance (employee_id, date, clock_in, status)
-                VALUES (?, CURDATE(), ?, 'active')
-            `;
+            INSERT INTO attendance (employee_id, created_at, clock_in, status)
+            VALUES (?, NOW(), ?, 'active')
+        `;
             console.log(`[QUERY] ${insertAttendanceQuery} | Params: [${id}, ${timestamp}]`);
     
             const insertResult = await this.databaseService.query(insertAttendanceQuery, [id, timestamp]);

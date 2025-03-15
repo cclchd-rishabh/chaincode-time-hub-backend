@@ -10,7 +10,7 @@ import { Roles } from '../auth/roles.decorator';
 export class EmployeeController {
   constructor(private readonly employeesService: EmployeeService) {}
 
-  // 🔹 Anyone with a valid JWT can view employees (HR & Attendance Manager)
+  // Anyone with a valid JWT can view employees (HR & Attendance Manager)
   @Get()
   getAllEmployees(): Promise<any> {
     return this.employeesService.getEmployeeAttendanceDetails();
