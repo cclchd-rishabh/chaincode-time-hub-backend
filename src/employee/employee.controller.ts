@@ -4,7 +4,7 @@ import { Employee } from './employee.model';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-
+import { FileInterceptor } from '@nestjs/platform-express';
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeController {
