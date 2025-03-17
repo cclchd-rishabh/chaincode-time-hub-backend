@@ -9,36 +9,7 @@ import * as fs from 'fs';
 
 @Injectable()
 export class EmployeeService {
-    pool: any;
-    multerOptions = {
-        storage: diskStorage({
-            destination: (req, file, cb) => {
-                const uploadPath = './uploads';
-                if (!fs.existsSync(uploadPath)) {
-                    fs.mkdirSync(uploadPath, { recursive: true });
-                }
-                cb(null, uploadPath);
-            },
-            filename: (req, file, cb) => {
-                const fileExt = path.extname(file.originalname);
-                const filename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
-                cb(null, filename);
-            },
-        }),
-        limits: { fileSize: 5 * 1024 * 1024 }, // Max 5MB
-        fileFilter: (req, file, cb) => {
-            const allowedExtensions = /jpeg|jpg|png/;
-            const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
-            const mimetype = allowedExtensions.test(file.mimetype);
-
-            if (extname && mimetype) {
-                return cb(null, true);
-            }
-            return cb(new HttpException('Only .jpg, .jpeg, and .png formats allowed!', HttpStatus.BAD_REQUEST), false);
-        },
-    };
-
-
+    
     constructor(private readonly databaseService: DatabaseService) { }
     async getEmployeeAttendanceDetails() {
         const query = `
@@ -237,18 +208,24 @@ SELECT * FROM RankedAttendance WHERE rn = 1;
         // console.log("rows -> ", [rows]);
         return rows;
     }
-    async createEmployee(body: any, file?: Express.Multer.File): Promise<any> {
+    async createEmployee(body: any): Promise<any> {
+        const { first_name, last_name, email, department, role, avatar } = body; // Avatar is already included
+        console.log("CREATE EMPLOYEE KE ANDAR CODE AAYA ");
+    
+        if (!first_name || !email || !department || !role) {
+            throw new HttpException("Missing required fields", HttpStatus.BAD_REQUEST);
+        }
+    
         const query = `
             INSERT INTO employees (first_name, last_name, email, avatar, department, role)
             VALUES (?, ?, ?, ?, ?, ?);
         `;
-
-        const { first_name, last_name, email, department, role } = body;
-        const avatar = file ? `/uploads/${file.filename}` : null;
-
+    
         try {
-            const result = await this.databaseService.query(query, [first_name, last_name, email, avatar, department, role]) as { insertId: number };
-
+            const result = await this.databaseService.query(query, [
+                first_name, last_name, email, avatar, department, role,
+            ]) as { insertId: number };
+    
             return {
                 success: true,
                 message: "Employee created successfully",
@@ -264,14 +241,16 @@ SELECT * FROM RankedAttendance WHERE rn = 1;
             };
         } catch (error) {
             console.error("Error creating employee:", error);
-
+    
             if (error.code === "ER_DUP_ENTRY") {
                 throw new HttpException("Email already exists", HttpStatus.CONFLICT);
             }
-
+    
             throw new HttpException("Failed to create employee", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    
+    
     async handleBreaks(id: number, updates: Partial<Employee>): Promise<Employee | string> {
         if (!id || isNaN(id)) {
             return "Invalid Employee ID";
@@ -485,6 +464,8 @@ SELECT * FROM RankedAttendance WHERE rn = 1;
         console.log("editing emp in db");
         return rows.affectedRows > 0 ? { id: employeeId, ...updates } as Employee : null;
     }
+
+    
     async deleteEmployee(id: number): Promise<void | string> {
         const query = `DELETE from employees WHERE employees.id=?;`;
         const res = await this.databaseService.query(query, [id]) as any[]

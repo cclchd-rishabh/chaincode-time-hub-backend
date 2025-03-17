@@ -3,7 +3,7 @@ export class Employee {
     first_name: string;
     last_name: string;
     email: string;
-    avatar: string;
+    avatar: string | null;
     department: string;
     role: string;
     clock_in: string | null;

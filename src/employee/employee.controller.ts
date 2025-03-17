@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller,UploadedFile, Get, Post, Put, Delete, Param, Body, Query, BadRequestException, UseGuards, UseInterceptors } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { Employee } from './employee.model';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeController {
@@ -32,16 +33,44 @@ export class EmployeeController {
   //  Only HR can create an employee
   @Roles('HR')
   @Post()
-  createEmployee(@Body() body: Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>): Employee | any {
-    return this.employeesService.createEmployee(body) as any || 'Error in creating employee';
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+        destination: './uploads',  // Save images in 'uploads' folder
+        filename: (req, file, cb) => {
+            const filename = `${Date.now()}-${file.originalname}`;
+            cb(null, filename);
+        }
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 }  
+}))
+
+  createEmployee(@UploadedFile() file, @Body() body: Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>): Employee | any {
+    const avatarPath = file ? `/uploads/${file.filename}` : null;
+    console.log("Here is the Avatar Path ********",avatarPath);
+    return this.employeesService.createEmployee({ ...body, avatar: avatarPath }) as any || 'Error in creating employee';
   }
 
   //  Only HR can update employee details
   @Roles('HR')
-  @Put(':id')
-  updateEmployee(@Param('id') id: string, @Body() updates: Partial<Employee>): Employee | string {
-    return this.employeesService.updateEmployee(parseInt(id), updates) as any || 'Employee not found';
-  }
+@Put(':id')
+@UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+            const filename = `${Date.now()}-${file.originalname}`;
+            cb(null, filename);
+        }
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 }
+}))
+async updateEmployee(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Body() updates: Partial<Employee>): Promise<Employee | string> {
+    const avatarPath = file ? `/uploads/${file.filename}` : null;
+
+    const updatedEmployee = await this.employeesService.updateEmployee(parseInt(id), { ...updates, avatar: avatarPath });
+
+    return updatedEmployee ?? 'Employee not found';
+}
+
 
   //  Only HR can delete an employee
   @Roles('HR')
