@@ -23,7 +23,6 @@ export class EmployeeService {
       const employees = await Employee.findAll({
         attributes: [
           "id", "first_name", "last_name", "email", "avatar", "department", "role", "createdAt",
-         
           [Sequelize.fn("MAX", Sequelize.col("attendances.id")), "attendance_id"],
           [Sequelize.fn("MAX", Sequelize.col("attendances.clock_in")), "clock_in"],
           [Sequelize.fn("MAX", Sequelize.col("attendances.clock_out")), "clock_out"],

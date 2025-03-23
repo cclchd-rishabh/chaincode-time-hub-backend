@@ -13,12 +13,12 @@ import { diskStorage } from 'multer';
 export class EmployeeController {
   constructor(private readonly employeesService: EmployeeService) {}
 
-  // Anyone with a valid JWT can view employees (HR & Attendance Manager)
+  //  (HR & Attendance Manager)
   @Get()
   getAllEmployees(): Promise<any> {
     return this.employeesService.getEmployeeAttendanceDetails();
   }
-  @Roles('HR','Attendance Manager')
+  @Roles('HR','Attendance_Manager')
   @Get('daily-attendance')
   async getDailyAttendance(@Query('date') date: string) {
     if (!date) {
@@ -82,7 +82,7 @@ async updateEmployee(@Param('id') id: string, @UploadedFile() file: Express.Mult
 
   // Attendance Manager and HR can clock-in employees
 // Attendance Manager and HR can clock-in employees
-@Roles('HR','Attendance Manager')
+@Roles('HR','Attendance_Manager')
 @Post('clock-in/:id')
 handleClockIn(@Param('id') id: string): any | string {
   return this.employeesService.handleAttendanceClockIn(parseInt(id)) as any || 'Cannot clock in';
@@ -101,7 +101,7 @@ handleClockIn(@Param('id') id: string): any | string {
     return this.employeesService.handleStartBreak(parseInt(id)) as any || 'Cannot start break';
   }
 
-  // @Roles('HR', 'Attendance_Manager')
+  @Roles('HR', 'Attendance_Manager')
   @Put('break-end/:id')
   handleEndBreak(@Param('id') id: string): any | string {
     return this.employeesService.handleEndBreak(parseInt(id)) as any || 'Cannot end break';

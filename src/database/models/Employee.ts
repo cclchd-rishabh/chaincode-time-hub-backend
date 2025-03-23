@@ -25,8 +25,6 @@ export class Employee extends Model<Employee> {
   @Column({ type: DataType.STRING(100), allowNull: true })
   declare role: string;
  
-
-
   @HasMany(() => Attendance, { foreignKey: 'employee_id',as :'attendances' }) // Ensure correct relation
   declare attendances: Attendance[];
   employee_id: null;
