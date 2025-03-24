@@ -130,7 +130,7 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
               'break_end',
               'status',
             ],
-            separate: true, // This is important - loads associations in separate queries
+            separate: true, // loads associations in separate queries
             order: [['break_start', 'DESC']],
             limit: 1,
           },
@@ -177,7 +177,7 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
       total_work_time: attendance?.total_work_time || 0,
       attendance_status: attendance?.status || null,
 
-      // The issue is here - we need to directly use the break object properties
+      // issue - we need to directly use the break object properties
       break_id: breakDetails?.id || null,
       break_start: breakDetails?.break_start || null,
       break_end: breakDetails?.break_end || null,
@@ -455,54 +455,7 @@ async createEmployee(body: any): Promise<any> {
           return totalBreakTime;
       }
         
-        // async calculateWorkTime(attendanceId: number): Promise<{ 
-        //   totalBreakTime: string; 
-        //   totalWorkTime: string; 
-        //   netWorkTime: string; 
-        // }> {
-        //   try {
-        //     // Find the attendance record
-        //     const attendance = await this.attendanceModel.findByPk(attendanceId);
-        //     if (!attendance) {
-        //       throw new Error("Attendance record not found");
-        //     }
-      
-        //     // Get completed breaks for this attendance
-        //     const breaks = await this.breakModel.findAll({
-        //       where: {
-        //         attendance_id: attendanceId,
-        //         break_start: { [Op.ne]: new Date(0) },
-        //         break_end: { [Op.ne]: new Date(0) }
-        //       }
-        //     });
-      
-        //     // Calculate total break time in milliseconds
-        //     let totalBreakTimeMs = 0;
-        //     breaks.forEach(breakEntry => {
-        //       const breakStart = new Date(breakEntry.break_start);
-        //       const breakEnd = new Date(breakEntry.break_end);
-        //       totalBreakTimeMs += (breakEnd.getTime() - breakStart.getTime());
-        //     });
-      
-        //     // Calculate total work time
-        //     const clockInTime = attendance.clock_in ? new Date(attendance.clock_in) : new Date(0);
-        //     const clockOutTime = attendance.clock_out ? new Date(attendance.clock_out) : new Date();
-        //     const totalWorkTimeMs = clockOutTime.getTime() - clockInTime.getTime();
-      
-        //     // Calculate net work time
-        //     const netWorkTimeMs = totalWorkTimeMs - totalBreakTimeMs;
-      
-        //     // Convert to HH:MM:SS format
-        //     const totalBreakTime = new Date(totalBreakTimeMs).toISOString().substr(11, 8);
-        //     const totalWorkTime = new Date(totalWorkTimeMs).toISOString().substr(11, 8);
-        //     const netWorkTime = new Date(netWorkTimeMs).toISOString().substr(11, 8);
-      
-        //     return { totalBreakTime, totalWorkTime, netWorkTime };
-        //   } catch (error) {
-        //     console.error("Error calculating work time:", error);
-        //     throw new Error("Failed to calculate work time");
-        //   }
-        // }
+    
       
         async handleStartBreak(id: number) {
           console.log("DEBUG: Received attendanceId from frontend:", id);
@@ -542,8 +495,8 @@ async createEmployee(body: any): Promise<any> {
             attendance.status = 'inactive';
             await attendance.save();
             
-            console.log(`[LOG] Updated attendance status to inactive. ID: ${id}`);
-            console.log("Break started successfully for attendance ID:", id);
+            console.log(`Updated attendance status to inactive. ID: ->>${id}`);
+            console.log("Break started successfully for attendance ID--->>>", id);
             
             return { message: 'Break started successfully', success: true };
           } catch (error) {
