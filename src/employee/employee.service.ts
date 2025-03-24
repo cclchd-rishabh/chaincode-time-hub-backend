@@ -1,9 +1,10 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Employee } from '../database/models/Employee';
 import { Attendance } from '../database/models/Attendance';
 import { Break } from '../database/models/Breaks';
 import { Op, Sequelize } from 'sequelize';
+import { start } from 'repl';
 
 @Injectable()
 export class EmployeeService {
@@ -184,6 +185,160 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
       break_status: breakDetails?.status || null,
     };
   });
+}
+async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
+  // Parse the dates and create date objects
+  const startDateObj = new Date(startDate);
+  const endDateObj = new Date(endDate);
+  
+  // Set to start of day for start date and end of day for end date
+  startDateObj.setHours(0, 0, 0, 0);
+  endDateObj.setHours(23, 59, 59, 999);
+  
+  // Ensure valid date range
+  if (startDateObj > endDateObj) {
+    throw new BadRequestException('Start date must be before end date');
+  }
+  
+  // Find all employees
+  const employees = await Employee.findAll({
+    attributes: [
+      'id',
+      'first_name',
+      'last_name',
+      'email',
+      'avatar',
+      'department',
+      'role',
+      'createdAt',
+    ],
+    where: {
+      createdAt: { [Op.lte]: endDateObj },
+    },
+    include: [
+      {
+        model: Attendance,
+        as: 'attendances',
+        required: false,
+        attributes: [
+          'id',
+          'clock_in',
+          'clock_out',
+          'total_time',
+          'total_break_time',
+          'total_work_time',
+          'status',
+          'createdAt',
+        ],
+        where: {
+          createdAt: { [Op.between]: [startDateObj, endDateObj] }
+        },
+        include: [
+          {
+            model: Break,
+            as: 'breaks',
+            required: false,
+            attributes: [
+              'id',
+              'break_start',
+              'break_end',
+              'status',
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  // Create a map to store results by date and employee
+  const attendanceMap = new Map();
+  
+  // Process all employees
+  for (const employee of employees) {
+    // For each attendance record of this employee within the date range
+    if (employee.attendances && employee.attendances.length > 0) {
+      for (const attendance of employee.attendances) {
+        // Create a date string for this attendance record
+        const attendanceDate = new Date(attendance.createdAt);
+        const dateKey = attendanceDate.toISOString().split('T')[0];
+        
+        // Process breaks for this attendance
+        const breakDetails = attendance.breaks && attendance.breaks.length > 0 
+          ? attendance.breaks[0] 
+          : null;
+        
+        // Create result object for this employee and date
+        const resultKey = `${dateKey}_${employee.id}`;
+        
+        attendanceMap.set(resultKey, {
+          employee_id: employee.id,
+          employee_created_at: employee.createdAt,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email,
+          avatar: employee.avatar,
+          department: employee.department,
+          role: employee.role,
+          
+          attendance_date: dateKey,
+          attendance_id: attendance.id,
+          clock_in: attendance.clock_in,
+          clock_out: attendance.clock_out,
+          total_time: attendance.total_time,
+          total_break_time: attendance.total_break_time,
+          total_work_time: attendance.total_work_time,
+          attendance_status: attendance.status,
+          
+          break_id: breakDetails?.id || null,
+          break_start: breakDetails?.break_start || null,
+          break_end: breakDetails?.break_end || null,
+          break_status: breakDetails?.status || null,
+        });
+      }
+    } else {
+      // For employees with no attendance in the date range, create a placeholder entry for each day
+      let currentDate = new Date(startDateObj);
+      
+      while (currentDate <= endDateObj) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        const resultKey = `${dateKey}_${employee.id}`;
+        
+        attendanceMap.set(resultKey, {
+          employee_id: employee.id,
+          employee_created_at: employee.createdAt,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email,
+          avatar: employee.avatar,
+          department: employee.department,
+          role: employee.role,
+          
+          attendance_date: dateKey,
+          attendance_id: null,
+          clock_in: null,
+          clock_out: null,
+          total_time: 0,
+          total_break_time: 0,
+          total_work_time: 0,
+          attendance_status: null,
+          
+          break_id: null,
+          break_start: null,
+          break_end: null,
+          break_status: null,
+        });
+        
+        // Move to the next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+  }
+  
+  // Convert map to array
+  console.log("attendance-map" , attendanceMap);
+  const arr = Array.from(attendanceMap.values());
+  console.log("attendance-map-array" , arr);
+  return arr;
 }
   private formatDate(date: string | Date | null): string | null {
       if (!date) return null;

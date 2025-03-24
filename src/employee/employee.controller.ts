@@ -13,7 +13,7 @@ import { diskStorage } from 'multer';
 export class EmployeeController {
   constructor(private readonly employeesService: EmployeeService) {}
 
-  //  (HR & Attendance Manager)
+  //(HR & Attendance Manager)
   @Get()
   getAllEmployees(): Promise<any> {
     return this.employeesService.getEmployeeAttendanceDetails();
@@ -26,11 +26,20 @@ export class EmployeeController {
     }
     return this.employeesService.getEmployeeAttendanceDetailsDatewise(date);
   }
+  @Get('daterange')
+  async getAttendanceByDateRange(
+    @Query('start') startDate: string,
+    @Query('end') endDate: string,
+  ) {
+    return this.employeesService.getEmployeeAttendanceByDateRange(startDate, endDate);
+  }
   @Roles('HR')
   @Get(':id')
   getEmployeeById(@Param('id') id: string): Employee | string {
     return this.employeesService.getEmployeeById(parseInt(id)) as any || 'Employee not found';
   }
+
+
 
   //  Only HR can create an employee
   @Roles('HR')
@@ -80,7 +89,7 @@ async updateEmployee(@Param('id') id: string, @UploadedFile() file: Express.Mult
     return this.employeesService.deleteEmployee(parseInt(id)) as any || 'Cannot Delete';
   }
 
-  // Attendance Manager and HR can clock-in employees
+
 // Attendance Manager and HR can clock-in employees
 @Roles('HR','Attendance_Manager')
 @Post('clock-in/:id')
