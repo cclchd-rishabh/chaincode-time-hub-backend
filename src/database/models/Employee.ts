@@ -7,6 +7,9 @@ export class Employee extends Model<Employee> {
   @Column({ type: DataType.INTEGER, autoIncrement: true, primaryKey: true })
   declare id: number;
 
+  @Column({type:DataType.STRING(20),allowNull:false})
+  declare emp_id:string;
+
   @Column({ type: DataType.STRING(20), allowNull: false })
   declare first_name: string;
 
@@ -24,6 +27,13 @@ export class Employee extends Model<Employee> {
 
   @Column({ type: DataType.STRING(100), allowNull: true })
   declare role: string;
+
+  @Column({
+    type: DataType.ENUM('remote', 'in-office'),
+    allowNull: false,
+    defaultValue: 'in-office',
+  })
+  declare work_location: string;
  
   @HasMany(() => Attendance, { foreignKey: 'employee_id',as :'attendances' }) 
   declare attendances: Attendance[];

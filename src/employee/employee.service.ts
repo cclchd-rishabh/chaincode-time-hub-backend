@@ -23,7 +23,7 @@ export class EmployeeService {
     try {
       const employees = await Employee.findAll({
         attributes: [
-          "id", "first_name", "last_name", "email", "avatar", "department", "role", "createdAt",
+          "id","emp_id" , "first_name", "last_name", "email", "avatar", "department", "role","work_location", "createdAt",
           [Sequelize.fn("MAX", Sequelize.col("attendances.id")), "attendance_id"],
           [Sequelize.fn("MAX", Sequelize.col("attendances.clock_in")), "clock_in"],
           [Sequelize.fn("MAX", Sequelize.col("attendances.clock_out")), "clock_out"],
@@ -60,11 +60,13 @@ export class EmployeeService {
         const flattenedData = employees.map(row => {
             return {
                 employee_id: row.id,
+                emp_id:row.emp_id,
                 first_name: row.first_name,
                 last_name: row.last_name,
                 email: row.email,
                 avatar: row.avatar,
                 department: row.department,
+                work_location: row.work_location,
                 role: row.role,
                 employee_created_at: this.formatDate(row.createdAt),
                 attendance_id: row['attendanceModel.attendance_id'],
@@ -95,12 +97,14 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
   const employees = await Employee.findAll({
     attributes: [
       'id',
+      'emp_id',
       'first_name',
       'last_name',
       'email',
       'avatar',
       'department',
       'role',
+      'work_location',
       'createdAt',
     ],
     include: [
@@ -162,6 +166,7 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
 
     return {
       employee_id: employee.id,
+      emp_id:employee.emp_id,
       employee_created_at: employee.createdAt,
       first_name: employee.first_name,
       last_name: employee.last_name,
@@ -169,6 +174,7 @@ async getEmployeeAttendanceDetailsDatewise(date: string) {
       avatar: employee.avatar,
       department: employee.department,
       role: employee.role,
+      work_location: employee.work_location,
 
       attendance_id: attendance?.id || null,
       clock_in: attendance?.clock_in || null,
@@ -196,20 +202,22 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
   endDateObj.setHours(23, 59, 59, 999);
   
   // Ensure valid date range
-  if (startDateObj > endDateObj) {
-    throw new BadRequestException('Start date must be before end date');
-  }
+  // if (startDateObj >= endDateObj) {
+  //   throw new BadRequestException('Start date must be before end date');
+  // }
   
   // Find all employees
   const employees = await Employee.findAll({
     attributes: [
       'id',
+      'emp_id',
       'first_name',
       'last_name',
       'email',
       'avatar',
       'department',
       'role',
+      'work_location',
       'createdAt',
     ],
     where: {
@@ -272,6 +280,7 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
         
         attendanceMap.set(resultKey, {
           employee_id: employee.id,
+          emp_id:employee.emp_id,
           employee_created_at: employee.createdAt,
           first_name: employee.first_name,
           last_name: employee.last_name,
@@ -279,6 +288,7 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
           avatar: employee.avatar,
           department: employee.department,
           role: employee.role,
+          work_location: employee.work_location,
           
           attendance_date: dateKey,
           attendance_id: attendance.id,
@@ -305,6 +315,7 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
         
         attendanceMap.set(resultKey, {
           employee_id: employee.id,
+          emp_id:employee.emp_id,
           employee_created_at: employee.createdAt,
           first_name: employee.first_name,
           last_name: employee.last_name,
@@ -312,6 +323,7 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
           avatar: employee.avatar,
           department: employee.department,
           role: employee.role,
+          work_location: employee.work_location,
           
           attendance_date: dateKey,
           attendance_id: null,
@@ -354,7 +366,7 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
     const employee = await this.employeeModel.findOne({
         where: { id },
         attributes: [
-            'id', 'first_name', 'last_name', 'email', 'avatar', 'department', 'role', 
+            'id','emp_id' , 'first_name', 'last_name', 'email', 'avatar', 'department', 'role', 'work_location',
             'createdAt', 'total_time', 'total_break_time', 'total_work_time'
         ],
     });
@@ -391,7 +403,7 @@ async createEmployee(body: any): Promise<any> {
   }
   async updateEmployee(
     id: number,
-    updateData: Partial<Omit<Employee, 'id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>>
+    updateData: Partial<Omit<Employee, 'id'|'emp_id' | 'clock_in' | 'clock_out' | 'break_time' | 'last_break_start' | 'total_time' | 'status'>>
   ): Promise<Employee | null> {
     try {
       const employee = await this.employeeModel.findByPk(id);
