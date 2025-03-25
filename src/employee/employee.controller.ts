@@ -13,7 +13,6 @@ import { diskStorage } from 'multer';
 export class EmployeeController {
   constructor(private readonly employeesService: EmployeeService) {}
 
-  //(HR & Attendance Manager)
   @Get()
   getAllEmployees(): Promise<any> {
     return this.employeesService.getEmployeeAttendanceDetails();
@@ -40,8 +39,6 @@ export class EmployeeController {
   }
 
 
-
-  //  Only HR can create an employee
   @Roles('HR')
   @Post()
   @UseInterceptors(FileInterceptor('avatar', {
@@ -61,7 +58,7 @@ export class EmployeeController {
     return this.employeesService.createEmployee({ ...body, avatar: avatarPath }) as any || 'Error in creating employee';
   }
 
-  //  Only HR can update employee details
+
   @Roles('HR')
 @Put(':id')
 @UseInterceptors(FileInterceptor('avatar', {
@@ -82,7 +79,6 @@ async updateEmployee(@Param('id') id: string, @UploadedFile() file: Express.Mult
     return updatedEmployee ?? 'Employee not found';
 }
 
-  //  Only HR can delete an employee
   @Roles('HR')
   @Delete(':id')
   deleteEmployee(@Param('id') id: string): string {
@@ -90,20 +86,20 @@ async updateEmployee(@Param('id') id: string, @UploadedFile() file: Express.Mult
   }
 
 
-// Attendance Manager and HR can clock-in employees
+
 @Roles('HR','Attendance_Manager')
 @Post('clock-in/:id')
 handleClockIn(@Param('id') id: string): any | string {
   return this.employeesService.handleAttendanceClockIn(parseInt(id)) as any || 'Cannot clock in';
 }
-// HR and Attendance Manager can clock-out employees
+
   @Roles('HR','Attendance_Manager')
   @Put('clock-out/:id')
   handleClockOut(@Param('id') id: string): any | string {
     return this.employeesService.handleAttendanceClockOut(parseInt(id)) as any || 'Cannot clock out';
   }
 
-  // // Both HR and Attendance Manager can handle breaks
+
   @Roles('HR', 'Attendance_Manager')
   @Put('break-start/:id')
   handleStartBreak(@Param('id') id: string): any | string {

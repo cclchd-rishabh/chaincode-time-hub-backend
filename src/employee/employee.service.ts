@@ -250,19 +250,19 @@ async getEmployeeAttendanceByDateRange(startDate: string, endDate: string) {
     ],
   });
 
-  // Create a map to store results by date and employee
+ 
   const attendanceMap = new Map();
   
-  // Process all employees
+  
   for (const employee of employees) {
     // For each attendance record of this employee within the date range
     if (employee.attendances && employee.attendances.length > 0) {
       for (const attendance of employee.attendances) {
-        // Create a date string for this attendance record
+        
         const attendanceDate = new Date(attendance.createdAt);
         const dateKey = attendanceDate.toISOString().split('T')[0];
         
-        // Process breaks for this attendance
+        
         const breakDetails = attendance.breaks && attendance.breaks.length > 0 
           ? attendance.breaks[0] 
           : null;
@@ -379,7 +379,7 @@ async createEmployee(body: any): Promise<any> {
         data: employee,
       };
     } catch (error: any) {
-      console.error("Error creating employee:", error); // Log full error
+      console.error("Error creating employee:", error);
       if (error.name === "SequelizeUniqueConstraintError") {
         throw new HttpException("Email already exists", HttpStatus.CONFLICT);
       }

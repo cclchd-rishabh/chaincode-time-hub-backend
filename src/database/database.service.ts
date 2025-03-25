@@ -15,7 +15,7 @@ export class DatabaseService implements OnModuleInit {
       connectionLimit: 10,
       queueLimit: 0,
     });
-    console.log('✅ MySQL Database Connected');
+    console.log('----> MySQL Database Connected');
   }
 
   async query(sql: string, params: any[] = []) {

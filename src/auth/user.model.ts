@@ -2,7 +2,7 @@ import { Table, Column, Model, DataType } from 'sequelize-typescript';
 
 @Table({
   tableName: 'users',  
-  timestamps: false,  // No createdAt & updatedAt
+  timestamps: false,  
 })
 export class User extends Model<User> {
   @Column({
@@ -16,7 +16,7 @@ export class User extends Model<User> {
     type: DataType.STRING,
     allowNull: false,
   })
-  declare username: string;  // `declare` prevents shadowing Sequelize attributes
+  declare username: string;  
 
   @Column({
     type: DataType.STRING,

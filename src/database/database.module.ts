@@ -4,27 +4,26 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Employee } from './models/Employee';
 import { Attendance } from './models/Attendance';
 import { Break } from './models/Breaks';
-import { User } from 'src/auth/user.model'; // ✅ Make sure the path is correct
+import { User } from 'src/auth/user.model';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule, 
     SequelizeModule.forRootAsync({
-      imports: [ConfigModule],
+      imports: [ConfigModule],  
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         dialect: 'mysql',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: parseInt(configService.get<string>('DB_PORT', '3307'), 10),
-        username: configService.get<string>('DB_USER', 'root'),
-        password: configService.get<string>('DB_PASS', 'mysecretpassword'),
-        database: configService.get<string>('DB_NAME', 'my_sequelize_db'),
-        autoLoadModels: true, // ✅ This will automatically load all models
-        synchronize: true,
-        models: [Employee, Attendance, Break, User], // ✅ Ensure User is listed
+        host: configService.get<string>('DB_HOST', ''),
+        port: parseInt(configService.get<string>('DB_PORT', ''), 10),
+        username: configService.get<string>('DB_USERNAME', ''),
+        password: configService.get<string>('DB_PASSWORD', ''),
+        database: configService.get<string>('DB_NAME', ''),
+        autoLoadModels: true,
+        models: [Employee, Attendance, Break, User],
       }),
     }),
-    SequelizeModule.forFeature([Employee, Attendance, Break, User]), // ✅ Register User explicitly
+    SequelizeModule.forFeature([Employee, Attendance, Break, User]),
   ],
   exports: [SequelizeModule],
 })

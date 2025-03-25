@@ -5,9 +5,11 @@ import { AppService } from './app.service';
 import { EmployeeModule } from './employee/employee.module';
 import { DatabaseService } from './database/database.service';
 import { AuthModule } from './auth/auth.module';
-
+import { ConfigModule } from '@nestjs/config';
 @Module({
-  imports: [ EmployeeModule, AuthModule],
+  imports: [  ConfigModule.forRoot({
+    isGlobal: true, 
+  }),EmployeeModule, AuthModule],
   controllers: [AppController],
   providers: [DatabaseService, AppService],
   exports: [DatabaseService],
