@@ -393,8 +393,17 @@ async createEmployee(body: any): Promise<any> {
     } catch (error: any) {
       console.error("Error creating employee:", error);
       if (error.name === "SequelizeUniqueConstraintError") {
-        throw new HttpException("Email already exists", HttpStatus.CONFLICT);
-      }
+        const duplicateField = error.errors?.[0]?.path; // Get the field that caused the unique constraint error
+
+        if (duplicateField === "email") {
+            throw new HttpException("Email already exists", HttpStatus.CONFLICT);
+        } else if (duplicateField === "emp_id") {
+            throw new HttpException("Employee ID already exists", HttpStatus.CONFLICT);
+        } else {
+            throw new HttpException("Duplicate entry found", HttpStatus.CONFLICT);
+        }
+    }
+
       throw new HttpException(error.message || "Failed to create employee", HttpStatus.INTERNAL_SERVER_ERROR);
     
 

@@ -7,7 +7,7 @@ export class Employee extends Model<Employee> {
   @Column({ type: DataType.INTEGER, autoIncrement: true, primaryKey: true })
   declare id: number;
 
-  @Column({type:DataType.STRING(20),allowNull:false})
+  @Column({type:DataType.STRING(20),allowNull:false , unique:true})
   declare emp_id:string;
 
   @Column({ type: DataType.STRING(20), allowNull: false })
