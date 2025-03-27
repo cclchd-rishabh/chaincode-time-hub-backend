@@ -9,11 +9,9 @@ async function bootstrap() {
     origin: ['http://localhost:3000', 'https://timehub.chaincodeconsulting.com','*'],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    // credentials: true,
+    credentials: true,
     preflightContinue: false, // Ensures the browser doesn't block preflight
   });
-  
-  
   
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
