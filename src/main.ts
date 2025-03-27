@@ -6,11 +6,12 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.enableCors({
-    origin: '*',  // Change this to your frontend domain in production
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: ['http://localhost:3000', 'https://timehub.chaincodeconsulting.com'], // Allow specific domains
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization',
-    credentials: true, // If using cookies or authentication
+    credentials: true,
   });
+  
   
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
