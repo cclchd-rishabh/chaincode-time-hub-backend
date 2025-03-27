@@ -3,7 +3,7 @@ version: '3.3'
 services:
   backend:
     build: .
-    container_name: chaincode-backend
+    container_name: chaincode-timehub-backend
     restart: always
     ports:
       - "3008:4000"
