@@ -12,25 +12,27 @@ export class AuthService {
   ) {}
 
  
-    async validateUser(username: string, password: string): Promise<any> {
-      // Find user by username
-      const user = await this.userModel.findOne({ where: { username } });
+  async validateUser(username: string, password: string): Promise<any> {
+    // Find user by username
+    const user = await this.userModel.findOne({ where: { username } });
   
-      console.log('Extracted User Object:', user);
+    console.log('Extracted User Object:', user);
   
-      if (!user || !user.password) {
-        console.log("User object structure is incorrect!", user);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-  
-      // Validate password (direct string comparison)
-      if (password !== user.password) {
-        console.log("Invalid password");
-        throw new UnauthorizedException('Invalid credentials');
-      }
-  
-      return { id: user.id, username: user.username, role: user.role };
+    if (!user || !user.password) {
+      console.log("User not found or password field missing");
+      throw new UnauthorizedException('Invalid credentials');
     }
+  
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log("Invalid password");
+      throw new UnauthorizedException('Invalid credentials');
+    }
+  
+    return { id: user.id, username: user.username, role: user.role };
+  }
+  
   
     async login(user: any) {
       const payload = { username: user.username, sub: user.id, role: user.role };

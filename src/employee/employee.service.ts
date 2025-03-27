@@ -4,7 +4,6 @@ import { Employee } from '../database/models/Employee';
 import { Attendance } from '../database/models/Attendance';
 import { Break } from '../database/models/Breaks';
 import { Op, Sequelize } from 'sequelize';
-import { start } from 'repl';
 
 @Injectable()
 export class EmployeeService {
