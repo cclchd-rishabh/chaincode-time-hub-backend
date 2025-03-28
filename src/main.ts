@@ -1,27 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000', 
-      'https://timehub.chaincodeconsulting.com',
-      'http://localhost:3008'  // Add if needed
-    ],
+    origin: ['http://localhost:3000', 'https://timehub.chaincodeconsulting.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Credentials'
-    ],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   });
 
   await app.listen(3008);
