@@ -11,17 +11,18 @@ export class AuthController {
   constructor(private authService: AuthService) {}
   @Options('login')
   handlePreflight(@Req() req, @Res() res) {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    return res.sendStatus(200);
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.status(204).send(); // Use 204 No Content for preflight requests
   }
 
-  @UseGuards(AuthGuard('local'))
   @Post('login')
+  @UseGuards(AuthGuard('local'))
   async login(@Request() req) {
     console.log("Login request received with user:", req.user);
     return this.authService.login(req.user);
   }
+  
 }
