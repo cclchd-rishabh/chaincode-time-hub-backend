@@ -1,15 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // ✅ Proper CORS Configuration (Avoids Multiple Values Issue)
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://timehub.chaincodeconsulting.com'],
+    origin: 'https://timehub.chaincodeconsulting.com', // Allow only your frontend
+    credentials: true, // Allow cookies/session auth
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
   });
 
   await app.listen(3008);
